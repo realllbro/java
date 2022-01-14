@@ -1,3 +1,5 @@
+package network;
+
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.IOException;
@@ -10,8 +12,6 @@ import java.io.StringWriter;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.Map;
-
-package network;
 
 /**
  * Http Client 클래스
