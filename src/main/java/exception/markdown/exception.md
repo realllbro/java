@@ -415,5 +415,255 @@
   ```  
   컴파일러가 예외처리를 확인하지 않는     
   RuntimeException클래스들은 unchecked 예외 라고 부르고,     
-  예외처리를 확인하는 Exception클래스들은 checked 예외 라고 부른다.
+  예외처리를 확인하는 Exception클래스들은 checked 예외 라고 부른다.    
   
+###. 1.7 메서드에 예외 선언하기   
+* 메서드에 선언부에 키워드 throws를 사용 예외가 여러 개일 경우에는 쉼표(,)로 구분   
+  ```java
+    void method() throws Exception1, Exception2, ... ExceptionN{
+          // 메서드의 내용
+    }
+  ```
+* JAVA API 문서를 통해 사용하고자 하는 메서드의 선언부와 Throws: 를 보고     
+  처리해야 할 Exception 과 처리 해주지 않아도 될 RuntimeException은 어떤것들이 있는지 잘 확인해 보자.   
+* thorws에 명시하는 것은 자신을 호출한 메서드에게 예외를 전달하여 예외처리를 떠맡기는 것이다.    
+* 예외를 전달받은 메서드가 또다시 자신을 호출한 메서드에게 전달할 수 있으며, 이런 식으로 계속 호출스택에 있는   
+  메서드들을 따라 전달되다가 제일 마지막에 있는 main메서드 에서도 예외가 처리되지 않으면, main메서드 마저 종료되어 프로그램이 전체가 비정상적으로 종료된다.   
+  ```java
+    package exception;
+    
+    public class ExceptionEx12 {
+        public static void main(String[] args)throws Exception{
+            method1();      // 같은 클래스내의 static멤버이므로 객체생성없이 직접 호출가능.
+        }
+        static void method1() throws Exception{
+            method2();
+        }
+        static void method2() throws Exception{
+            throw new Exception();
+        }
+    }
+    
+    /* 실행결과
+        Exception in thread "main" java.lang.Exception
+            at exception.ExceptionEx12.method2(ExceptionEx12.java:11)
+            at exception.ExceptionEx12.method1(ExceptionEx12.java:8)
+            at exception.ExceptionEx12.main(ExceptionEx12.java:5)
+     */
+  ```  
+* 결국 어느 한 곳에서는 반드시 try-catch문으로 예외처리를 해주어야 한다.    
+  ```java
+    package exception;
+    
+    public class ExceptionEx13 {
+        public static void main(String[] args)throws Exception{
+            method1();      // 같은 클래스내의 static멤버이므로 객체생성없이 직접 호출가능.
+        }
+        static void method1() throws Exception{
+            try {
+                throw new Exception();
+            }catch (Exception e){
+                System.out.println("method1메서드에서 예외가 처리되었습니다.");
+                e.printStackTrace();
+            }
+        }
+    }
+    
+    /* 실행결과
+        method1메서드에서 예외가 처리되었습니다.
+        java.lang.Exception
+            at exception.ExceptionEx13.method1(ExceptionEx13.java:9)
+            at exception.ExceptionEx13.main(ExceptionEx13.java:5)
+     */
+
+    package exception;
+    
+    public class ExceptionEx14 {
+        public static void main(String[] args)throws Exception{
+            try {
+                method1();
+            }catch (Exception e){
+                System.out.println("main메서드에서 예외가 처리되었습니다.");
+                e.printStackTrace();
+            }
+        }
+        static void method1() throws Exception{
+            throw new Exception();
+        }
+    }
+    
+    /* 실행결과
+        main메서드에서 예외가 처리되었습니다.
+        java.lang.Exception
+            at exception.ExceptionEx14.method1(ExceptionEx14.java:13)
+            at exception.ExceptionEx14.main(ExceptionEx14.java:6)
+     */
+    
+  ```  
+* 아래 두 예제의 차이점은 예외의 처리방법에 있다. Ex15는 예외가 발생한 createFile 메서드 자체내에서 처리를 하며,    
+  Ex16 은 createFile 메서드를 호출한 메서드(main 메서드)에서 처리한다.    
+  예외가 발생한 메서드 내에서 자체적으로 처리해도 되는 것은 메서드 내에서 try-catch문을 사용해서 처리하고, 두 번째 예제처럼     
+  메서드에 호출 시 넘겨받아야 할 값(fileName)을 다시 받아야 하는 경우(메서드 내에서 자체적으로 해결이 안 되는 경우)에는    
+  예외를 메서드에 선언해서, 호출한 메서드에서 처리해야 한다.   
+  ```java
+    package exception;
+    
+    import java.io.File;
+    
+    public class ExceptionEx15 {
+        public static void main(String[] args)throws Exception{
+            // command line 에서 입력받은 값을 이름으로 갖는 파일을 생성한다.
+            File f = createFile(args[0]);
+            System.out.println(f.getName() + " 파일이 성공적으로 생성되었습니다.");
+        }
+        static File createFile(String fileName){
+            try{
+                if(null == fileName || "".equals(fileName)) {
+                    throw new Exception("파일이름이 유효하지 않습니다.");
+                }
+            }catch(Exception e){
+                // fileName이 부적절한 경우, 파일 이름을 제목없음.txt 로 한다.
+                fileName = "제목없음.txt";
+            }finally{
+                File f = new File(fileName);        // File 클래스의 객체를 만든다.
+                createNewFile(f);                      // 생성된 객체를 이용해서 파일을 생성한다.
+                return f;
+            }
+        }
+        static void createNewFile(File f){
+            try{
+                f.createNewFile();      // 파일을 생성한다.
+            }catch (Exception e){}
+        }
+    }
+    
+    /* 실행결과
+        //파라메터 text.txt
+        test.txt 파일이 성공적으로 생성되었습니다.
+    
+        //파라메터 ""
+        제목없음.txt 파일이 성공적으로 생성되었습니다.
+     */
+    
+    package exception;
+    
+    import java.io.File;
+    
+    public class ExceptionEx16 {
+      public static void main(String[] args)throws Exception{
+        try {
+          // command line 에서 입력받은 값을 이름으로 갖는 파일을 생성한다.
+          File f = createFile(args[0]);
+          System.out.println(f.getName() + " 파일이 성공적으로 생성되었습니다.");
+        }catch (Exception e){
+          System.out.println(e.getMessage()+" 다시 입력해 주시기 바랍니다.");
+        }
+      }
+    
+      static File createFile(String fileName)throws Exception{
+        if(null == fileName || "".equals(fileName)) {
+          throw new Exception("파일이름이 유효하지 않습니다.");
+        }
+        File f = new File(fileName);        // File 클래스의 객체를 만든다.
+        f.createNewFile();                  // File 객체의 createNewFile 메서드를 이용해서 실제 파일을 생성한다.
+        return f;
+      }
+    }
+    
+    /* 실행결과
+        //파라메터 text.txt
+        test2.txt 파일이 성공적으로 생성되었습니다.
+    
+        //파라메터 ""
+        파일이름이 유효하지 않습니다. 다시 입력해 주시기 바랍니다.
+     */
+    
+  ```  
+### 1.8 finally 블럭
+* finally 블럭은 예외의 발생여부에 상관없이 실행되어야할 코드를 포함시킬 목적으로 사용된다.     
+  ```java
+    try{
+        // 예외가 발생할 가능성이 있는 문장들을 넣는다.    
+    }catch(Exception1 e1){
+        // 예외처리를 위한 문장을 적는다.
+    }finally{
+        // 예외의 발생여부에 관계없이 항상 수행되어야 하는 문장들을 넣는다. 
+        // finally블럭은 try-catch문의 맨 마지막에 위치해야 한다.    
+    }
+  ```
+* 예외가 발생한 경우에는 try -> catch -> finally의 순으로 실행되고, 예외가 발생하지 않은       
+  경우에는 try -> finally의 순으로 실행된다.       
+* finally 블럭 사용 예제
+  ```java
+    //finally 적용 전 
+    package exception;
+
+    public class FinallyTest {
+        public static void main(String[] args){
+            try{
+                startInstall();     // 프로그램 설치에 필요한 준비를 한다.
+                copyFiles();        // 파일들을 복사한다.
+                deleteTempFiles();  // 프로그램 설치에 사용된 임시파일들을 삭제한다.
+            }catch (Exception e){
+                e.printStackTrace();
+                deleteTempFiles();  // 프로그램 설치에 사용된 임시파일들을 삭제한다.
+            }
+        }
+        static void startInstall(){}    // 프로그램 설치에 필요한 준비를 하는 코드를 적는다.
+        static void copyFiles(){}       // 파일들을 복사하는 코드를 적는다.
+        static void deleteTempFiles(){} // 임시파일들을 삭제하는 코드를 적는다.
+    }
+
+    //finally 적용 후
+    package exception;
+  
+    public class FinallyTest2 {
+      public static void main(String[] args){
+        try{
+          startInstall();     // 프로그램 설치에 필요한 준비를 한다.
+          copyFiles();        // 파일들을 복사한다.
+        }catch (Exception e){
+          e.printStackTrace();
+        }finally {
+          deleteTempFiles();  // 프로그램 설치에 사용된 임시파일들을 삭제한다.
+        }
+      }
+      static void startInstall(){}    // 프로그램 설치에 필요한 준비를 하는 코드를 적는다.
+      static void copyFiles(){}       // 파일들을 복사하는 코드를 적는다.
+      static void deleteTempFiles(){} // 임시파일들을 삭제하는 코드를 적는다.
+    }
+  
+    // finally 호출 순서
+    package exception;
+  
+    public class FinallyTest3 {
+      public static void main(String[] args){
+        // method1()은 static 메서드 라서 인스턴스 생성없이 직접 호출이 가능하다.
+        FinallyTest3.method1();
+        System.out.println("method1()의 수행을 마치고 main 메서드로 돌아왔습니다.");
+      }
+      static void method1(){
+        try{
+          System.out.println("method1()이 호출 되었습니다.");
+          return;
+        }catch (Exception e){
+          e.printStackTrace();
+        }finally{
+          System.out.println("method1()의 finally 블럭이 실행되었습니다.");
+        }
+      }
+    }
+    
+    /*  실행결과
+        method1()이 호출 되었습니다.
+        method1()의 finally 블럭이 실행되었습니다.
+        method1()의 수행을 마치고 main 메서드로 돌아왔습니다.
+     */
+    
+  ```
+* 위의 예제 결과에서 알 수 있듯이, try 블럭에서 return문이 실행되는 경우에도 finally 블럭의     
+  문장들이 먼저 실행된 후에, 현재 실행 중인 메서드를 종료한다.     
+  이와 마찬가지로 catch블럭의 문장 수행 중에 return문을 만나도 finally블럭의 문장들은 수행된다.   
+  
+  
+    
